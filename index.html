@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Square Drops — Prototype</title>
+<style>
+  @font-face {
+    font-family: 'Cash Sans';
+    src: url('assets/fonts/CashSans-Regular.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'Cash Sans';
+    src: url('assets/fonts/CashSans-Medium.otf') format('opentype');
+    font-weight: 500;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'Cash Sans';
+    src: url('assets/fonts/CashSans-Bold.otf') format('opentype');
+    font-weight: 600;
+    font-style: normal;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .phone {
+    width: 375px;
+    height: 812px;
+    border-radius: 50px;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 0 3px #333, 0 40px 80px rgba(0,0,0,0.5);
+    transform: scale(0.9);
+  }
+
+  .home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 134px;
+    height: 5px;
+    border-radius: 100px;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  #lockscreen .home-indicator {
+    background: rgba(255,255,255,0.3);
+  }
+
+  #poshome .home-indicator {
+    background: rgba(0,0,0,0.3);
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s ease;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 0;
+  }
+
+  .screen.active {
+    pointer-events: auto;
+    opacity: 1;
+    z-index: 1;
+  }
+
+  #lockscreen {
+    transform: translateY(0);
+  }
+
+  #lockscreen:not(.active) {
+    transform: translateY(-25%);
+  }
+
+  /* ---- Device Status Bar ---- */
+  .device-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    height: 50px;
+    position: relative;
+    z-index: 10;
+    font-family: -apple-system, system-ui, sans-serif;
+  }
+
+  .status-time {
+    font-size: 15px;
+    font-weight: 600;
+    color: white;
+    letter-spacing: -0.17px;
+  }
+
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-icon { display: block; }
+
+  .device-status-bar.dark {
+    background: #080808;
+  }
+
+  .device-status-bar.dark .status-time { color: rgba(255,255,255,0.95); }
+  .device-status-bar.dark .status-icon { /* already white from SVGs */ }
+
+  /* ---- Lock Screen ---- */
+  #lockscreen {
+    background: url('assets/wallpaper.png') center/cover;
+    font-family: -apple-system, system-ui, sans-serif;
+  }
+
+  .lock-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 60px;
+    color: white;
+  }
+
+  .lock-date { font-size: 20px; font-weight: 500; opacity: 0.85; }
+  .lock-time { font-size: 110px; font-weight: 300; letter-spacing: -2px; }
+
+  .lock-shortcuts {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 56px 50px;
+    margin-top: 20px;
+    flex-shrink: 0;
+  }
+
+  .lock-shortcut {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(21,21,21,0.35);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .lock-shortcut img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .lock-notif-area {
+    padding: 0 16px 0;
+    margin-top: auto;
+  }
+
+  .notif {
+    background: rgba(245,245,245,0.45);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-radius: 20px;
+    padding: 14px;
+    display: flex;
+    gap: 10px;
+    cursor: pointer;
+  }
+
+  .notif:active { opacity: 0.8; }
+
+  .notif-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: linear-gradient(#303030, #121212);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .notif-icon img { width: 60%; height: 60%; }
+  .notif-title { font-size: 15px; font-weight: 600; color: #000; }
+  .notif-body { font-size: 13px; color: #000; margin-top: 2px; }
+  .notif-time { font-size: 12px; color: rgba(0,0,0,0.4); float: right; }
+
+  /* ---- POS Home ---- */
+  #poshome {
+    background: #fff;
+    font-family: 'Cash Sans', sans-serif;
+  }
+
+  .pos-header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 16px 12px;
+  }
+
+  .pos-dropdown {
+    flex: 1;
+    height: 56px;
+    border-radius: 999px;
+    background: #f0f0f0;
+    border: none;
+    font-size: 18px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .pos-dropdown .chevron { font-size: 12px; opacity: 0.5; }
+
+  .pos-search {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .pos-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 0 16px;
+    align-content: start;
+    overflow-y: auto;
+  }
+
+  .tile {
+    border-radius: 12px;
+    height: 124px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 12px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+    position: relative;
+    overflow: hidden;
+    background: #101010;
+  }
+
+  .tile-coffees { background: #FF9F40; }
+  .tile-hot-teas { background: #A4C28D; }
+  .tile-iced-teas { background: #224D2E; }
+
+  .tile-img {
+    position: absolute;
+    inset: 0;
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+  }
+
+  .tile-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.4) 100%);
+  }
+
+  .tile-text {
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  .tile-price {
+    font-size: 14px;
+    font-weight: 400;
+    opacity: 0.85;
+  }
+
+  .pos-cart {
+    padding: 8px 16px 4px;
+    flex-shrink: 0;
+  }
+
+  .cart-btn {
+    width: 100%;
+    height: 56px;
+    border-radius: 999px;
+    background: #101010;
+    color: #fff;
+    border: none;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .tab-bar {
+    display: flex;
+    padding: 4px 4px 28px;
+    background: #fff;
+    flex-shrink: 0;
+  }
+
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #101010;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    border-radius: 12px;
+  }
+
+  .tab.on { background: #f0f0f0; }
+  .tab-ico { display: block; width: 24px; height: 24px; }
+  .tab-ico img { width: 24px; height: 24px; display: block; }
+
+  /* ---- Sheet ---- */
+  .sheet-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  .sheet-bg.open { pointer-events: auto; }
+
+  .sheet-dim {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .sheet-bg.open .sheet-dim {
+    opacity: 1;
+  }
+
+  .sheet {
+    position: absolute;
+    top: 56px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #080808;
+    font-family: 'Cash Sans', sans-serif;
+    border-radius: 32px 32px 0 0;
+    overflow: hidden;
+    transform: translateY(105%);
+    transition: transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1.02);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sheet-bg.open .sheet {
+    transform: translateY(0);
+  }
+
+  /* Sheet header - fixed, doesn't scroll */
+  .sheet-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+    padding: 0 24px;
+    background: #080808;
+  }
+
+  .sheet.sheet-page-0 .sheet-header {
+    background: transparent;
+  }
+
+  .sheet.sheet-page-1 .sheet-header {
+    background: transparent;
+    margin-bottom: -24px;
+  }
+
+  .sheet.sheet-page-1 .sheet-header-blur {
+    display: block;
+  }
+
+  .sheet-header-blur {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 8px;
+    border-radius: 32px 32px 0 0;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(8,8,8,0.4);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .sheet-header .progress,
+  .sheet-header .sheet-title {
+    position: relative;
+    z-index: 1;
+  }
+
+
+  .progress {
+    display: flex;
+    gap: 6px;
+    padding: 32px 0 0;
+  }
+
+  .dot {
+    flex: 1;
+    height: 3px;
+    border-radius: 3px;
+    background: #999;
+    transition: background 0.25s ease;
+  }
+
+  .dot.on { background: #fff; }
+
+  .sheet-title {
+    font-size: 16px;
+    font-weight: 500;
+    padding-top: 12px;
+    padding-bottom: 24px;
+    text-align: left;
+    color: #fff;
+  }
+
+  .sheet-pages {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    transition: transform 0.35s cubic-bezier(.4,.9,.3,1);
+  }
+
+  .sheet-page {
+    min-width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  /* Page 1 */
+  .sheet-page:first-child {
+    overflow: visible;
+  }
+
+  .page1-bg {
+    position: absolute;
+    top: -80px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(100% + 80px);
+    z-index: 0;
+    background: url('assets/marketplace-bg.png') center/cover;
+    opacity: 0.45;
+  }
+
+  .page1-grad {
+    position: absolute;
+    top: -80px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(100% + 80px);
+    z-index: 1;
+    background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.7) 100%);
+  }
+
+  .page1-content {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 32px;
+    gap: 12px;
+  }
+
+  .big-num { font-size: 164px; font-weight: 500; line-height: 0.85; letter-spacing: -4px; }
+  @keyframes bigNumPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+  .big-num.landed { animation: bigNumPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .big-sub { font-size: 24px; font-weight: 500; max-width: 280px; margin: 0 auto; }
+  .big-desc { font-size: 14px; opacity: 0.75; line-height: 1.35; text-align: center; }
+
+  .page1-bottom {
+    position: relative;
+    z-index: 1;
+    padding: 0 24px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .page1-bottom .big-desc { margin-top: 16px; }
+
+  .page1-bottom .btn-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .btn-row .btn-pill { flex: 1; }
+
+  .btn-pill {
+    width: 100%;
+    height: 52px;
+    border-radius: 40px;
+    border: none;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .btn-pill:active { opacity: 0.85; }
+  .btn-white { background: #fff; color: #000; }
+  .btn-dark { background: #232323; color: #fff; }
+  .btn-outline-white { background: transparent; color: #fff; border: 1px solid #fff; }
+
+  .link-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* Page 2 - Features (Figma layout) */
+  .page2-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px 40px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .page2-hero {
+    width: 327px;
+    height: calc(327px * 9 / 16 + 96px);
+    border-radius: 16px;
+    margin-bottom: 24px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .page2-hero video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .page2-intro {
+    margin-bottom: 24px;
+  }
+
+  .page2-intro h3 {
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 8px;
+  }
+
+  .page2-intro p {
+    font-size: 16px;
+    color: rgba(196,196,196,0.9);
+    line-height: 1.2;
+  }
+
+  .page2-section {
+    border-top: 1px solid rgba(255,255,255,0.15);
+    padding: 16px 0;
+  }
+
+  .page2-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.9);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .page2-section-header .chevron {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+  }
+
+  .page2-section.collapsed .chevron {
+    transform: rotate(180deg);
+  }
+
+  .page2-section.collapsed .page2-section-list {
+    display: none;
+  }
+
+  .page2-section-list {
+    list-style: disc;
+    margin: 12px 0 0 24px;
+    padding: 0;
+    font-size: 16px;
+    color: rgba(196,196,196,0.9);
+    line-height: 1.2;
+  }
+
+  .page2-section-list li {
+    margin-bottom: 8px;
+  }
+
+  .page2-section-list li:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Page 3 - Close */
+  .page3-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 40px;
+    text-align: center;
+    gap: 24px;
+  }
+
+  .page3-illustration {
+    width: 131px;
+    height: 131px;
+  }
+
+  .page3-illustration img {
+    width: 100%;
+    height: 100%;
+  }
+
+  .page3-center h2 {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.2;
+    max-width: 274px;
+  }
+
+  .page3-bottom {
+    padding: 0 24px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone">
+
+  <!-- Lock Screen -->
+  <div class="screen active" id="lockscreen">
+    <div class="device-status-bar">
+      <span class="status-time">12:37 PM</span>
+      <div class="status-icons">
+        <img src="assets/iphone-cell.svg" class="status-icon" style="width:17px;height:10px">
+        <img src="assets/iphone-wifi.svg" class="status-icon" style="width:14px;height:10px">
+        <svg class="status-icon" width="25" height="12" viewBox="0 0 25 12"><rect opacity="0.35" x="0.5" y="0.5" width="21" height="11" rx="2.5" stroke="white" stroke-opacity="0.95"/><rect x="2" y="2" width="18" height="8" rx="1.5" fill="white" fill-opacity="0.95"/><path opacity="0.4" d="M23 4.5v3c.8-.3 1.3-1 1.3-1.5s-.5-1.2-1.3-1.5z" fill="white"/></svg>
+      </div>
+    </div>
+    <div class="lock-content">
+      <div class="lock-date">Monday, February 9</div>
+      <div class="lock-time">12:36</div>
+    </div>
+    <div class="lock-notif-area">
+      <div class="notif" id="notif">
+        <div class="notif-icon"><img src="assets/jewel.svg" alt=""></div>
+        <div>
+          <span class="notif-time">34m ago</span>
+          <div class="notif-title">Week 6 Drop</div>
+          <div class="notif-body">Preview the 28 new features we are dropping this monday</div>
+        </div>
+      </div>
+    </div>
+    <div class="lock-shortcuts">
+      <button class="lock-shortcut" aria-label="Flashlight"><img src="assets/flashlight-icon.svg" alt=""></button>
+      <button class="lock-shortcut" aria-label="Camera"><img src="assets/camera-icon.svg" alt=""></button>
+    </div>
+    <div class="home-indicator"></div>
+  </div>
+
+  <!-- POS Home -->
+  <div class="screen" id="poshome">
+    <div class="device-status-bar dark">
+      <span class="status-time">12:37 PM</span>
+      <div class="status-icons">
+        <img src="assets/iphone-cell.svg" class="status-icon" style="width:17px;height:10px">
+        <img src="assets/iphone-wifi.svg" class="status-icon" style="width:14px;height:10px">
+        <svg class="status-icon" width="25" height="12" viewBox="0 0 25 12"><rect opacity="0.35" x="0.5" y="0.5" width="21" height="11" rx="2.5" stroke="white" stroke-opacity="0.95"/><rect x="2" y="2" width="18" height="8" rx="1.5" fill="white" fill-opacity="0.95"/><path opacity="0.4" d="M23 4.5v3c.8-.3 1.3-1 1.3-1.5s-.5-1.2-1.3-1.5z" fill="white"/></svg>
+      </div>
+    </div>
+
+    <div class="pos-header">
+      <button class="pos-dropdown">Favorites <img src="assets/favorites-caret.svg" style="width:14px;height:14px;opacity:0.5"></button>
+      <button class="pos-search"><img src="assets/search.svg" style="width:22px;height:22px"></button>
+    </div>
+
+    <div class="pos-grid">
+      <div class="tile">
+        <img class="tile-img" src="assets/item-1.png" alt="">
+        <div class="tile-overlay"></div>
+        <div class="tile-text">Cappuccino<div class="tile-price">$6.00</div></div>
+      </div>
+      <div class="tile">
+        <img class="tile-img" src="assets/item-2.png" alt="">
+        <div class="tile-overlay"></div>
+        <div class="tile-text">Matcha<div class="tile-price">$6.50</div></div>
+      </div>
+      <div class="tile">
+        <img class="tile-img" src="assets/item-3.png" alt="">
+        <div class="tile-overlay"></div>
+        <div class="tile-text">Iced coffee<div class="tile-price">$5.00</div></div>
+      </div>
+      <div class="tile">
+        <img class="tile-img" src="assets/item-1.png" alt="">
+        <div class="tile-overlay"></div>
+        <div class="tile-text">Latte<div class="tile-price">$6.00</div></div>
+      </div>
+      <div class="tile">
+        <img class="tile-img" src="assets/item-4.png" alt="">
+        <div class="tile-overlay"></div>
+        <div class="tile-text">Espresso<div class="tile-price">$4.00</div></div>
+      </div>
+      <div class="tile tile-coffees">
+        <div class="tile-overlay"></div>
+        <div class="tile-text">Coffees<div class="tile-price">$1.00</div></div>
+      </div>
+      <div class="tile tile-hot-teas">
+        <div class="tile-overlay"></div>
+        <div class="tile-text">Hot teas<div class="tile-price">$1.00</div></div>
+      </div>
+      <div class="tile tile-iced-teas">
+        <div class="tile-overlay"></div>
+        <div class="tile-text">Iced teas<div class="tile-price">$1.00</div></div>
+      </div>
+    </div>
+
+    <div class="pos-cart">
+      <button class="cart-btn">View cart (0)</button>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab on"><span class="tab-ico"><img src="assets/checkout.svg"></span>Checkout</button>
+      <button class="tab"><span class="tab-ico"><img src="assets/transactions.svg"></span>Transactions</button>
+      <button class="tab"><span class="tab-ico"><img src="assets/banking.svg"></span>Banking</button>
+      <button class="tab"><span class="tab-ico"><img src="assets/notifications.svg"></span>Notifications</button>
+      <button class="tab" id="tab-more"><span class="tab-ico"><img src="assets/more.svg"></span>More</button>
+    </div>
+    <div class="home-indicator"></div>
+  </div>
+
+  <!-- Sheet -->
+  <div class="sheet-bg" id="sheetBg">
+    <div class="sheet-dim"></div>
+    <div class="sheet" id="sheet">
+      <div class="sheet-header">
+        <div class="progress" id="sheetProgress">
+          <div class="dot" data-page="0"></div>
+          <div class="dot" data-page="1"></div>
+          <div class="dot" data-page="2"></div>
+        </div>
+        <div class="sheet-title">Week 6</div>
+        <div class="sheet-header-blur"></div>
+      </div>
+      <div class="sheet-pages" id="sheetPages">
+
+        <!-- Sheet Page 1: Intro -->
+        <div class="sheet-page">
+          <div class="page1-bg"></div>
+          <div class="page1-grad"></div>
+          <div class="page1-content">
+            <div class="big-num" id="bigNum">0</div>
+            <div class="big-sub">New features dropping this Sunday</div>
+          </div>
+          <div class="page1-bottom">
+            <div class="btn-row">
+              <button class="btn-pill btn-outline-white" id="btnNotNow">Not now</button>
+              <button class="btn-pill btn-white" id="btnTour">Preview</button>
+            </div>
+            <div class="big-desc">Every Thursday, Drops are your preview of the new features coming to Square every week</div>
+          </div>
+        </div>
+
+        <!-- Sheet Page 2: Features -->
+        <div class="sheet-page">
+          <div class="page2-scroll">
+            <div class="page2-hero"><video src="assets/bitcount video.mp4" autoplay loop muted playsinline></video></div>
+            <div class="page2-intro">
+              <p>Accept bitcoin just like card or tap-to-pay — only faster and with zero processing fees.</p>
+            </div>
+            <div class="page2-section" id="sectionPayments">
+              <div class="page2-section-header" onclick="document.getElementById('sectionPayments').classList.toggle('collapsed')">
+                <span>Payments</span>
+                <span class="chevron"><svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </div>
+              <ul class="page2-section-list">
+                <li>Bitcoin payments</li>
+                <li>Tap to Pay Improvements</li>
+                <li>Split Receipts</li>
+                <li>NFC Processing Speed</li>
+                <li>Refund Flow Improvements</li>
+                <li>Payment Link Sharing</li>
+              </ul>
+            </div>
+            <div class="page2-section" id="sectionPos">
+              <div class="page2-section-header" onclick="document.getElementById('sectionPos').classList.toggle('collapsed')">
+                <span>Point of sale</span>
+                <span class="chevron"><svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </div>
+              <ul class="page2-section-list">
+                <li>Item Tile Colors</li>
+                <li>Tip Screen Update</li>
+                <li>Quick Actions Bar</li>
+                <li>Customer Display Enhancements</li>
+                <li>Terminal Customization</li>
+                <li>Offline Mode</li>
+                <li>Discount Codes</li>
+              </ul>
+            </div>
+            <div class="page2-section" id="sectionDashboard">
+              <div class="page2-section-header" onclick="document.getElementById('sectionDashboard').classList.toggle('collapsed')">
+                <span>Dashboard</span>
+                <span class="chevron"><svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </div>
+              <ul class="page2-section-list">
+                <li>Inventory Alerts</li>
+                <li>Daily Summary Redesign</li>
+                <li>Analytics Dashboard</li>
+                <li>Report Export</li>
+                <li>Multi-location Support</li>
+              </ul>
+            </div>
+            <div class="page2-section" id="sectionReceipts">
+              <div class="page2-section-header" onclick="document.getElementById('sectionReceipts').classList.toggle('collapsed')">
+                <span>Receipts & Invoices</span>
+                <span class="chevron"><svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </div>
+              <ul class="page2-section-list">
+                <li>Receipt Email Customization</li>
+                <li>Invoice Customization</li>
+              </ul>
+            </div>
+            <div class="page2-section" id="sectionOther">
+              <div class="page2-section-header" onclick="document.getElementById('sectionOther').classList.toggle('collapsed')">
+                <span>Other</span>
+                <span class="chevron"><svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </div>
+              <ul class="page2-section-list">
+                <li>Staff Permissions</li>
+                <li>Gift Card Balance Check</li>
+                <li>Order Ahead</li>
+                <li>Customer Profiles</li>
+                <li>Tax Calculation Updates</li>
+                <li>Notification Preferences</li>
+                <li>Dark Mode</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sheet Page 3: Close -->
+        <div class="sheet-page">
+          <div class="page3-center">
+            <div class="page3-illustration">
+              <img src="assets/layer1.svg" alt="">
+            </div>
+            <h2>That's it for this weeks drop. See you next week.</h2>
+          </div>
+          <div class="page3-bottom">
+            <button class="btn-pill btn-white" id="btnClose">Close</button>
+            <button class="btn-pill btn-outline-white" id="btnDelay">Delay this drop 7 days</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  var page = 0;
+
+  // Notification → open POS + sheet (iOS-style slide-up transition)
+  document.getElementById('notif').addEventListener('click', function() {
+    var lockscreen = document.getElementById('lockscreen');
+    var poshome = document.getElementById('poshome');
+    lockscreen.classList.remove('active');
+    poshome.classList.add('active');
+    setTimeout(function() {
+      openSheet();
+    }, 800);
+  });
+
+  // Sheet controls
+  document.getElementById('btnTour').addEventListener('click', function() { goPage(1); });
+  document.getElementById('btnNotNow').addEventListener('click', function() { closeSheet(); });
+  document.getElementById('btnClose').addEventListener('click', function() { closeSheet(); });
+  document.getElementById('btnDelay').addEventListener('click', function() {
+    this.textContent = '✓ Delayed to Feb 22';
+    var btn = this;
+    setTimeout(function() { closeSheet(); btn.textContent = 'Delay this drop 7 days'; }, 1000);
+  });
+
+  // Swipe support on sheet
+  var touchStartX = 0;
+  document.querySelector('.sheet').addEventListener('touchstart', function(e) {
+    touchStartX = e.touches[0].clientX;
+  });
+  document.querySelector('.sheet').addEventListener('touchend', function(e) {
+    var diff = touchStartX - e.changedTouches[0].clientX;
+    if (diff > 50) goPage(Math.min(page + 1, 2));
+    if (diff < -50) goPage(Math.max(page - 1, 0));
+  });
+
+  // Click left/right halves to navigate pages
+  document.querySelector('.sheet').addEventListener('click', function(e) {
+    var rect = this.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    if (e.target.tagName === 'BUTTON') return;
+    if (x < rect.width * 0.3) goPage(Math.max(page - 1, 0));
+    else if (x > rect.width * 0.5) goPage(Math.min(page + 1, 2));
+  });
+
+  function openSheet() {
+    page = 0;
+    document.getElementById('sheetPages').style.transform = 'translateX(0)';
+    document.getElementById('sheetBg').classList.add('open');
+    document.getElementById('sheet').className = 'sheet sheet-page-0';
+    updateProgressDots(0);
+    animateBigNum(27);
+  }
+
+  function animateBigNum(target) {
+    var el = document.getElementById('bigNum');
+    el.textContent = '0';
+    var start = null;
+    var duration = 1800;
+    var delay = 400;
+
+    function easeOutExpo(t) {
+      return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    }
+
+    function tick(timestamp) {
+      if (!start) start = timestamp;
+      var elapsed = timestamp - start - delay;
+      if (elapsed < 0) {
+        requestAnimationFrame(tick);
+        return;
+      }
+      var progress = Math.min(elapsed / duration, 1);
+      var eased = easeOutExpo(progress);
+      var val = Math.round(eased * target);
+      el.textContent = val;
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        el.classList.remove('landed');
+        el.offsetHeight;
+        el.classList.add('landed');
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function closeSheet() {
+    document.getElementById('sheetBg').classList.remove('open');
+  }
+
+  function updateProgressDots(n) {
+    var dots = document.querySelectorAll('#sheetProgress .dot');
+    dots.forEach(function(dot, i) {
+      dot.classList.toggle('on', i === n);
+    });
+  }
+
+  function goPage(n) {
+    page = n;
+    document.getElementById('sheetPages').style.transform = 'translateX(-' + (n * 100) + '%)';
+    document.getElementById('sheet').className = 'sheet sheet-page-' + n;
+    updateProgressDots(n);
+  }
+
+  // More tab → reopen sheet
+  document.getElementById('tab-more').addEventListener('click', function() {
+    openSheet();
+  });
+</script>
+
+</body>
+</html>
